@@ -5,3 +5,5 @@
 See IFTT info here[https://ifttt.com/sec].
 
 Given a csv file of 13-F fillings the spider will crawl and return information table parsed to a pandas dataframe.
+
+parsing code for 13-F from (Brian Caffey)[https://briancaffey.github.io/2018/01/30/reading-13f-sec-filings-with-python.html]
