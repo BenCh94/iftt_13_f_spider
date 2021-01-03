@@ -10,6 +10,7 @@ class SecSpider(scrapy.Spider):
 
     iftt_file = pd.read_csv('SEC13_fFilings_1.csv', header=None)
     sample = iftt_file.head()
+    # links = iftt_file[iftt_file.columns[2]]
     links = sample[sample.columns[2]]
     start_urls = links.tolist()
 
@@ -17,12 +18,15 @@ class SecSpider(scrapy.Spider):
         """ Parse filling page and download info table """
         logging.info(response.xpath("//*[contains(text(), 'INFORMATION TABLE')]/preceding-sibling::td/a[contains(text(), '.html')]/@href"))
         info_tables = response.xpath("//*[contains(text(), 'INFORMATION TABLE')]/preceding-sibling::td/a[contains(text(), '.html')]/@href").extract()
-        for link in info_tables:
+        for i, link in enumerate(info_tables):
+            print(link)
+            print(i)
             absolute_url = response.urljoin(link)
-            yield scrapy.Request(absolute_url, callback=self.parse_info_table)
+            yield scrapy.Request(absolute_url, callback=self.parse_info_table, meta={row_index: i})
 
     def parse_info_table(self, response):
         """ Parse info table page and convert to pandas df """
+        index_val = response.meta.get('row_index')
         soup = BeautifulSoup(response.text, 'lxml')
         rows = soup.find_all('tr')[11:]
         positions = []
@@ -40,3 +44,4 @@ class SecSpider(scrapy.Spider):
             positions.append(dic)           
         df = pd.DataFrame(positions)
         print(df)
+        df.to_csv(f'{index_val}_result.csv')
