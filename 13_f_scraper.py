@@ -14,22 +14,34 @@ class SecSpider(scrapy.Spider):
     }
 
     def start_requests(self):
-        iftt_file = pd.read_csv('SEC13_fFilings_4.csv', header=None)
-        for index, row in iftt_file.iterrows():
-            print(f'Row number: {index}')
-            yield scrapy.Request(row[2], meta={'filer':row[1], 'date_string': row[0]})
+        self.fund_cik = '0001067983'
+        search_url = f'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={self.fund_cik}&type=13F'
+        yield scrapy.Request(search_url)
 
     def parse(self, response):
+        print('parsing search results page')
+        logging.info(response.xpath("//*[@id='documentsbutton']/@href"))
+        filings = response.xpath("//*[@id='documentsbutton']/@href").extract()
+        print(filings)
+        print(len(filings))
+        for i, link in enumerate(filings):
+            print(link)
+            print(i)
+            absolute_url = response.urljoin(link)
+            yield scrapy.Request(absolute_url, callback=self.parse_filing)
+
+
+    def parse_filing(self, response):
         """ Parse filling page and download info table """
         logging.info(response.xpath("//*[contains(text(), 'INFORMATION TABLE')]/preceding-sibling::td/a[contains(text(), '.html')]/@href"))
         info_tables = response.xpath("//*[contains(text(), 'INFORMATION TABLE')]/preceding-sibling::td/a[contains(text(), '.html')]/@href").extract()
-        filer = re.sub(r'[^\sa-zA-Z0-9]', '', response.meta.get('filer')).lower().strip().replace(" ", "_")
-        date_string = response.meta.get('date_string')
+        date_string = response.xpath("//*[contains(text(), 'Period of Report')]/following-sibling::div[1]//text()").extract()[0]
+        logging.info(date_string)
         for i, link in enumerate(info_tables):
             print(link)
             print(i)
             absolute_url = response.urljoin(link)
-            yield scrapy.Request(absolute_url, callback=self.parse_info_table, meta={'file_name': f'{filer}_{i}', 'date_string': date_string})
+            yield scrapy.Request(absolute_url, callback=self.parse_info_table, meta={'file_name': f'{self.fund_cik}_{date_string}', 'date_string': date_string})
 
     def parse_info_table(self, response):
         """ Parse info table page and convert to pandas df """
@@ -52,4 +64,11 @@ class SecSpider(scrapy.Spider):
             positions.append(dic)           
         df = pd.DataFrame(positions)
         print(df)
-        df.to_csv(f'output_results/file_4/{file_name}_result.csv')
+        df.to_csv(f'output_results/{file_name}_result.csv')
+
+
+# Fund CIK
+# Point 72 Asset Management 001603466
+# Berkshire Hathaway 0001067983
+# Citadel  0001423053
+# Pershing Square 0001336528
