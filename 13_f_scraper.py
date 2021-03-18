@@ -14,7 +14,7 @@ class SecSpider(scrapy.Spider):
     }
 
     def start_requests(self):
-        self.fund_cik = '0001067983'
+        self.fund_cik = '0001336528'
         search_url = f'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={self.fund_cik}&type=13F'
         yield scrapy.Request(search_url)
 
@@ -64,7 +64,7 @@ class SecSpider(scrapy.Spider):
             positions.append(dic)           
         df = pd.DataFrame(positions)
         print(df)
-        df.to_csv(f'output_results/{file_name}_result.csv')
+        df.to_csv(f'output_results/{self.fund_cik}/{file_name}_result.csv')
 
 
 # Fund CIK
